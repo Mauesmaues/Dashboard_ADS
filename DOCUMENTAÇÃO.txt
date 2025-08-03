@@ -1,0 +1,83 @@
+# BI SUPABASE
+
+Um sistema de Business Intelligence conectado ao Supabase, que permite visualizar e analisar métricas de desempenho com filtros de data e empresa.
+
+## Características
+
+- Conexão com banco de dados Supabase
+- Filtros por data e empresa
+- Tabela de dados com métricas importantes:
+  - Data
+  - Total de Registros
+  - Custo Conceito prime
+  - Gasto
+  - CPL Meta
+  - CPL Total
+- Visualização em gráficos
+- Exportação de dados
+- Tratamento de fuso horário entre UTC (Supabase) e Brasil (UTC-3)
+
+## Tratamento de Fuso Horário
+
+O sistema foi projetado para lidar com a diferença de fuso horário entre:
+
+- **Banco de Dados Supabase**: Armazena dados em UTC
+- **Usuários no Brasil**: Operam em UTC-3
+
+Toda a lógica de tratamento de datas foi implementada para:
+
+1. Converter datas do formato brasileiro (DD/MM/YYYY) para UTC antes de enviar consultas ao Supabase
+2. Converter datas do formato UTC para o horário brasileiro ao receber dados do Supabase
+3. Garantir que os filtros de data considerem o horário completo (00:00:00 para início do dia e 23:59:59 para final do dia)
+4. Exibir todas as datas e métricas no fuso horário brasileiro
+
+A classe `DateFormatter` no arquivo `src/utils/dateFormatter.js` contém todas as funções necessárias para este tratamento.
+
+## Como Começar
+
+### Pré-requisitos
+
+- Node.js (v14 ou superior)
+- NPM ou Yarn
+- Conta no Supabase com banco de dados configurado
+
+### Instalação
+
+1. Clone este repositório
+```
+git clone [URL_DO_REPOSITORIO]
+```
+
+2. Instale as dependências
+```
+npm install
+```
+
+3. Configure as variáveis de ambiente
+Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
+```
+SUPABASE_URL=sua_url_supabase
+SUPABASE_KEY=sua_chave_supabase
+PORT=3000
+```
+
+4. Inicie o servidor de desenvolvimento
+```
+npm run dev
+```
+
+5. Acesse http://localhost:3000 no navegador
+
+## Estrutura da Base de Dados
+
+O sistema espera as seguintes tabelas/estruturas no Supabase:
+
+- **registros**: contém os dados de leads/conversões
+- **empresas**: lista de empresas/clientes disponíveis
+- **custos**: informações de custos e gastos
+- **metas**: metas de CPL e outras métricas
+
+## Desenvolvimento
+
+Para mais detalhes sobre o desenvolvimento, consulte o arquivo `planejamento_projeto.md`.
+

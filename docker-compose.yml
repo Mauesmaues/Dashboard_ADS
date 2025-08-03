@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  bi-supabase:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bi-supabase-app
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - SESSION_SECRET=bi-supabase-secret-key-complex
+      - COOKIE_SECURE=false
+      - COOKIE_SAME_SITE=lax
+      - CORS_ORIGIN=http://localhost:3000
+      - TZ=America/Sao_Paulo
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Debug - BI Conceito Prime</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card mt-5">
+                    <div class="card-header">
+                        <h3 class="text-center mb-0">Login Debug</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="login-form">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email:</label>
+                                <input type="email" class="form-control" id="email" value="admin@conceitoprime.com" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Senha:</label>
+                                <input type="password" class="form-control" id="password" value="admin123" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Entrar</button>
+                        </form>
+                        
+                        <div id="login-error" class="alert alert-danger mt-3" style="display: none;"></div>
+                        
+                        <div class="mt-4">
+                            <h5>Debug Console:</h5>
+                            <div id="debug-console" class="border p-3 bg-dark text-light" style="height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+                                
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button class="btn btn-sm btn-secondary" onclick="clearDebug()">Limpar Debug</button>
+                            <button class="btn btn-sm btn-info" onclick="testConnection()">Testar Conexão</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Override console.log para mostrar no debug console
+        const debugConsole = document.getElementById('debug-console');
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        function addToDebug(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'text-danger' : type === 'warn' ? 'text-warning' : 'text-light';
+            debugConsole.innerHTML += `<div class="${color}">[${timestamp}] ${message}</div>`;
+            debugConsole.scrollTop = debugConsole.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToDebug(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToDebug('ERROR: ' + args.join(' '), 'error');
+        };
+        
+        function clearDebug() {
+            debugConsole.innerHTML = '';
+        }
+        
+        async function testConnection() {
+            try {
+                console.log('🔧 Testando conexão com servidor...');
+                const response = await fetch('/api/auth/check');
+                console.log('🔧 Status da conexão:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('🔧 Resposta:', JSON.stringify(data, null, 2));
+                } else {
+                    console.log('🔧 Servidor respondeu com erro:', response.statusText);
+                }
+            } catch (error) {
+                console.error('🔧 Erro de conexão:', error.message);
+            }
+        }
+        
+        // Carregar o auth debug
+        console.log('🔧 Carregando sistema de login debug...');
+    </script>
+    
+    <!-- Carregar auth debug -->
+    <script src="auth-debug.js"></script>
+</body>
+</html>

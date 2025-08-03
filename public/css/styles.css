@@ -1,0 +1,184 @@
+/* Custom styles for BI Supabase - Modern UI */
+
+body {
+    font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f3f8;
+    color: #2c3e50;
+    line-height: 1.6;
+}
+
+.main-content {
+    padding-bottom: 2rem;
+}
+
+.card {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    border: none;
+    border-radius: 0.8rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+}
+
+.card-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding: 1rem 1.25rem;
+    border-top-left-radius: 0.8rem !important;
+    border-top-right-radius: 0.8rem !important;
+}
+
+.table {
+    margin-bottom: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    padding: 1rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.table td {
+    padding: 0.9rem 1rem;
+    vertical-align: middle;
+}
+
+/* Estilo para linha de totalizadores */
+tr.table-dark td {
+    background-color: #3498db !important;
+    color: white !important;
+    font-weight: 600;
+    border-top: 2px solid #2980b9;
+}
+
+footer {
+    border-top: 1px solid #dee2e6;
+    padding: 1.5rem 0;
+    background-color: #ffffff;
+}
+
+.form-control, .form-select {
+    border-radius: 0.5rem;
+    padding: 0.65rem 1rem;
+    border: 1px solid #e0e6ed;
+    box-shadow: none;
+    transition: all 0.3s;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.15);
+}
+
+.date-picker {
+    background-color: #fff;
+    cursor: pointer;
+    padding-right: 2rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23212529' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+}
+
+/* Custom colors for metrics */
+.positive-value {
+    color: #27ae60; /* green */
+    font-weight: 600;
+}
+
+.negative-value {
+    color: #e74c3c; /* red */
+    font-weight: 600;
+}
+
+/* Chart container styling */
+canvas {
+    max-width: 100%;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background-color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+/* Modern buttons */
+.btn {
+    border-radius: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: #3498db;
+    border-color: #3498db;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: #2980b9;
+    border-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+}
+
+.btn-success {
+    background-color: #2ecc71;
+    border-color: #2ecc71;
+}
+
+.btn-success:hover, .btn-success:focus {
+    background-color: #27ae60;
+    border-color: #27ae60;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);
+}
+
+/* Filter buttons */
+.btn-filter {
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    background-color: #ecf0f1;
+    border-color: #ecf0f1;
+    color: #34495e;
+}
+
+.btn-filter:hover, .btn-filter:focus {
+    background-color: #bdc3c7;
+    border-color: #bdc3c7;
+    color: #2c3e50;
+}
+
+.btn-filter.active {
+    background-color: #3498db;
+    border-color: #3498db;
+    color: #fff;
+}
+
+/* Nav tabs styling */
+.nav-tabs .nav-link {
+    border-radius: 0.5rem 0.5rem 0 0;
+    padding: 0.75rem 1.25rem;
+    font-weight: 500;
+    color: #7f8c8d;
+    border: 1px solid transparent;
+}
+
+.nav-tabs .nav-link.active {
+    color: #3498db;
+    background-color: #fff;
+    border-color: #dee2e6 #dee2e6 #fff;
+    border-bottom: 3px solid #3498db;
+}

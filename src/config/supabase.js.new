@@ -1,0 +1,117 @@
+/**
+ * Supabase Configuration
+ * This file manages the connection to Supabase
+ */
+const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
+
+// Log connection attempt details
+console.log('Initializing Supabase connection...');
+console.log(`Node.js version: ${process.version}`);
+console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+// Get and verify configuration values
+const getConfigValue = (envVar, fallback) => {
+  const value = process.env[envVar] || fallback;
+  if (!value) {
+    console.warn(`⚠️ Missing ${envVar} environment variable`);
+    return null;
+  }
+  return value.trim();
+};
+
+// Get configuration from environment
+const supabaseUrl = getConfigValue('SUPABASE_URL', 'https://asjuyhoplswopzxuybrk.supabase.co');
+const supabaseKey = getConfigValue('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzanV5aG9wbHN3b3B6eHV5YnJrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTE0OTc3OCwiZXhwIjoyMDY0NzI1Nzc4fQ.UX0Hh3LJTFe7LOq94aiIVmUuNr8-l_HaMCMa8pp7iRk');
+
+// Extract project reference from URL if possible
+function extractProjectRef(url) {
+  try {
+    const match = url.match(/https:\/\/([^.]+)\.supabase\.co/);
+    return match ? match[1] : null;
+  } catch (e) {
+    console.error('Failed to extract project reference:', e);
+    return null;
+  }
+}
+
+const projectRef = extractProjectRef(supabaseUrl);
+console.log(`Supabase URL: ${supabaseUrl}`);
+console.log(`Project reference: ${projectRef || 'Not found'}`);
+console.log(`API Key length: ${supabaseKey ? supabaseKey.length : 0} characters`);
+
+// Try multiple client configurations to find one that works
+function createSupabaseClient() {
+  // Strategy 1: Default configuration (simple)
+  try {
+    console.log('Trying default client configuration...');
+    return createClient(supabaseUrl, supabaseKey);
+  } catch (e) {
+    console.warn('Default configuration failed:', e.message);
+    
+    // Strategy 2: Try with extra options
+    try {
+      console.log('Trying with explicit options...');
+      return createClient(supabaseUrl, supabaseKey, {
+        auth: { persistSession: false },
+        realtime: { autoconnect: false }
+      });
+    } catch (e) {
+      console.warn('Explicit options failed:', e.message);
+      
+      // Strategy 3: Try alternative URL structure
+      if (projectRef) {
+        try {
+          console.log('Trying with alternative URL structure...');
+          const altUrl = `https://${projectRef}.supabase.co`;
+          return createClient(altUrl, supabaseKey);
+        } catch (e) {
+          console.warn('Alternative URL structure failed:', e.message);
+        }
+      }
+    }
+  }
+  
+  // Last resort: Create a dummy client that logs errors
+  console.error('All connection attempts failed. Creating dummy client.');
+  return {
+    _connectionFailed: true,
+    from: (table) => ({
+      select: () => {
+        console.error(`Failed database operation on table: ${table}`);
+        return Promise.reject(new Error(`Database connection failed for table: ${table}`));
+      }
+    })
+  };
+}
+
+const supabase = createSupabaseClient();
+
+// Test connection function 
+async function testConnection() {
+  try {
+    console.log('Testing connection to Supabase...');
+    
+    // Try a simple connection test
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .limit(1);
+      
+    if (error) {
+      console.error('Connection test failed:', error.message);
+      return false;
+    }
+    
+    console.log('Connection successful:', data ? `Found ${data.length} records` : 'No records found');
+    return true;
+  } catch (err) {
+    console.error('Connection test exception:', err.message);
+    return false;
+  }
+}
+
+module.exports = {
+  supabase,
+  testConnection
+};
