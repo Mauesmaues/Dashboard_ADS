@@ -148,10 +148,8 @@ ON CONFLICT (empresa, ad_account_id) DO NOTHING;
 ## 📈 MÉTRICAS CALCULADAS
 
 - **Total Registros**: Contagem de leads/conversões
-- **Custo Rooster**: Soma da coluna `price` da tabela `bills`
 - **Gasto**: Soma da coluna `custo` da tabela `custoDiaMeta`
 - **CPL Meta**: Total registros ÷ Gasto
-- **CPL Total**: Total registros ÷ (Gasto + Custo Rooster)
 
 ## 🏢 GESTÃO DE EMPRESAS
 
