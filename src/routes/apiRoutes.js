@@ -127,4 +127,68 @@ router.put('/companies/:id', authMiddleware.isAuthenticated, CompanyController.u
 router.delete('/companies/:id', authMiddleware.isAuthenticated, CompanyController.deleteCompany);
 router.delete('/companies/by-ad-account/:ad_account_id', authMiddleware.isAuthenticated, CompanyController.deleteCompanyByAdAccountId);
 
+// CRM Routes
+router.get('/crm/leads/:companyName', authMiddleware.isAuthenticated, async (req, res) => {
+  try {
+    const { companyName } = req.params;
+    const { supabase } = require('../config/supabase');
+    
+    console.log(`[CRM] Buscando leads para empresa: "${companyName}"`);
+    
+    // Use o nome exato da empresa como nome da tabela (sem sanitização)
+    const tableName = companyName;
+    
+    console.log(`[CRM] Nome da tabela (exato): "${tableName}"`);
+    
+    // Tentar buscar dados diretamente da tabela
+    // Se a tabela não existir, o Supabase retornará um erro específico
+    const { data, error } = await supabase
+      .from(tableName)
+      .select(`
+        id,
+        data_hora_entrada,
+        nome,
+        email,
+        telefone,
+        procedimento_interesse,
+        ja_realizou,
+        quando_pretende
+      `)
+      .order('data_hora_entrada', { ascending: false });
+    
+    if (error) {
+      // Se a tabela não existe, retorna array vazio
+      if (error.code === 'PGRST106' || error.message.includes('does not exist')) {
+        console.log(`[CRM] ⚠️ Tabela "${tableName}" não encontrada - retornando array vazio`);
+        return res.json([]);
+      }
+      
+      console.error('[CRM] Erro ao buscar leads:', error);
+      throw error;
+    }
+    
+    // Processar dados para garantir que campos vazios sejam tratados
+    const processedData = data?.map(lead => ({
+      ...lead,
+      nome: lead.nome || '',
+      email: lead.email || '',
+      telefone: lead.telefone || '',
+      procedimento_interesse: lead.procedimento_interesse || '',
+      ja_realizou: lead.ja_realizou || '',
+      quando_pretende: lead.quando_pretende || '',
+      data_hora_entrada: lead.data_hora_entrada || ''
+    })) || [];
+    
+    console.log(`[CRM] ✅ Encontrados ${processedData.length} leads para "${companyName}"`);
+    res.json(processedData);
+    
+  } catch (error) {
+    console.error('[CRM] Erro no endpoint de leads:', error);
+    res.status(500).json({ 
+      error: 'Erro ao buscar leads',
+      details: error.message 
+    });
+  }
+});
+
 module.exports = router;
