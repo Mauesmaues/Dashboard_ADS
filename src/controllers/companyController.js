@@ -18,7 +18,12 @@ class CompanyController {
       const companies = await EmpresaAdAccountModel.getAllMappings();
       
       console.log('📊 Companies returned from model:', companies.length, 'companies');
-      console.log('📊 First company structure:', companies[0] || 'No companies found');
+      console.log('📊 Sample company data with saldo:', companies.map(c => ({
+        empresa: c.empresa,
+        ad_account_id: c.ad_account_id,
+        saldo: c.saldo,
+        saldo_updated_at: c.saldo_updated_at
+      })));
       
       return res.status(200).json(companies);
     } catch (error) {
@@ -39,12 +44,13 @@ class CompanyController {
         return res.status(403).json({ error: 'Acesso restrito' });
       }
       
-      const { nome, ad_account_id, descricao } = req.body;
+      const { nome, ad_account_id, descricao, created_at } = req.body;
       
       console.log('📝 Extracted fields:');
       console.log('   - nome:', nome);
       console.log('   - ad_account_id:', ad_account_id);
       console.log('   - descricao:', descricao);
+      console.log('   - created_at:', created_at);
 
       // Validate required fields
       if (!nome || !ad_account_id) {
@@ -77,7 +83,7 @@ class CompanyController {
       }
 
       // Create mapping in empresa_ad_accounts table
-      const newCompany = await EmpresaAdAccountModel.createMapping(nome, ad_account_id);
+      const newCompany = await EmpresaAdAccountModel.createMapping(nome, ad_account_id, created_at);
       
       console.log('✅ Company mapping created successfully:', newCompany);
       

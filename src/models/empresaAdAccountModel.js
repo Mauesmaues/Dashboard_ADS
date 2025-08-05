@@ -2,7 +2,7 @@ const { supabase } = require('../config/supabase');
 
 class EmpresaAdAccountModel {
   // Create mapping between empresa and ad_account_id
-  static async createMapping(empresa, ad_account_id) {
+  static async createMapping(empresa, ad_account_id, created_at = null) {
     try {
       // Check if mapping already exists
       const { data: existing, error: checkError } = await supabase
@@ -27,7 +27,7 @@ class EmpresaAdAccountModel {
         .insert([{
           empresa,
           ad_account_id,
-          created_at: new Date().toISOString()
+          created_at: created_at || new Date().toISOString()
         }])
         .select()
         .single();
@@ -76,19 +76,86 @@ class EmpresaAdAccountModel {
     }
   }
 
-  // Get all mappings
+  // Get all mappings with latest balance from campanhas_n8n
   static async getAllMappings() {
     try {
-      const { data, error } = await supabase
+      console.log('🔍 [getAllMappings] Iniciando busca de empresas...');
+      
+      // Buscar todas as empresas
+      const { data: empresasData, error: empresasError } = await supabase
         .from('empresa_ad_accounts')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (empresasError) throw empresasError;
 
-      return data || [];
+      console.log(`✅ [getAllMappings] Encontradas ${empresasData?.length || 0} empresas`);
+
+      if (!empresasData || empresasData.length === 0) {
+        return [];
+      }
+
+      // Buscar todos os saldos de uma vez usando query otimizada
+      const adAccountIds = empresasData.map(e => e.ad_account_id);
+      console.log('🔍 [getAllMappings] Buscando saldos para ad_account_ids:', adAccountIds);
+
+      // Query para buscar o último saldo de cada ad_account_id
+      const { data: saldosData, error: saldosError } = await supabase
+        .from('campanhas_n8n')
+        .select('ad_account_id, saldo, created_at')
+        .in('ad_account_id', adAccountIds)
+        .order('created_at', { ascending: false });
+
+      if (saldosError) {
+        console.error('❌ [getAllMappings] Erro ao buscar saldos:', saldosError);
+        // Se der erro, retorna empresas com saldo 0
+        return empresasData.map(empresa => ({
+          ...empresa,
+          saldo: 0,
+          saldo_updated_at: null
+        }));
+      }
+
+      console.log(`✅ [getAllMappings] Encontrados ${saldosData?.length || 0} registros de saldo`);
+
+      // Criar mapa com o último saldo de cada ad_account_id
+      const saldoMap = {};
+      if (saldosData) {
+        saldosData.forEach(record => {
+          // Só adiciona se ainda não tem um registro para este ad_account_id (já que está ordenado por data DESC)
+          if (!saldoMap[record.ad_account_id]) {
+            saldoMap[record.ad_account_id] = {
+              saldo: record.saldo !== null ? parseFloat(record.saldo) : 0,
+              saldo_updated_at: record.created_at
+            };
+          }
+        });
+      }
+
+      console.log('📊 [getAllMappings] Mapa de saldos:', saldoMap);
+
+      // Combinar empresas com seus saldos
+      const mappingsWithBalance = empresasData.map(empresa => {
+        const saldoInfo = saldoMap[empresa.ad_account_id] || { saldo: 0, saldo_updated_at: null };
+        
+        console.log(`✅ [getAllMappings] ${empresa.empresa} (${empresa.ad_account_id}): R$ ${saldoInfo.saldo}`);
+        
+        return {
+          ...empresa,
+          saldo: saldoInfo.saldo,
+          saldo_updated_at: saldoInfo.saldo_updated_at
+        };
+      });
+
+      console.log('📊 [getAllMappings] Resultado final com saldos:', mappingsWithBalance.map(m => ({
+        empresa: m.empresa,
+        ad_account_id: m.ad_account_id,
+        saldo: m.saldo
+      })));
+
+      return mappingsWithBalance;
     } catch (error) {
-      console.error('Error fetching all mappings:', error);
+      console.error('❌ [getAllMappings] Erro geral:', error);
       throw error;
     }
   }

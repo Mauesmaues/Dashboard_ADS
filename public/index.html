@@ -28,7 +28,7 @@
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <h1 class="mb-1 fw-bold"><i class="fas fa-chart-line me-2"></i>BI Conceito Prime</h1>
-                        <p class="mb-0 opacity-75">Sistema de Business Intelligence Direcionado a Campanhas Inbound</p>
+                        <p class="mb-0 opacity-75">Sistema de Business Intelligence Direcionado a Campanhas META ADS</p>
                     </div>
                     <div>
                         <nav class="navbar navbar-expand navbar-dark">
@@ -101,6 +101,11 @@
                             <i class="fas fa-ad me-2"></i>Campanhas por Conta
                         </button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="video-engagement-tab" data-bs-toggle="tab" data-bs-target="#video-engagement-view" type="button" role="tab" aria-controls="video-engagement-view" aria-selected="false">
+                            <i class="fas fa-play me-2"></i>Engajamento Vídeo
+                        </button>
+                    </li>
                 </ul>
             </div>
             
@@ -162,6 +167,7 @@
                                             <th>Gasto Total</th>
                                             <th data-bs-toggle="tooltip" title="Gasto ÷ Total de Cliques">CPC Médio</th>
                                             <th data-bs-toggle="tooltip" title="Impressões Totais">Impressões</th>
+                                            <th data-bs-toggle="tooltip" title="Taxa de Cliques"><i class="fas fa-percentage me-1"></i>CTR</th>
                                         </tr>
                                     </thead>
                                     <tbody id="companyTableBody">
@@ -171,6 +177,60 @@
                             </div>
                             <div id="noCompanyData" class="alert alert-info text-center d-none">
                                 Nenhum dado encontrado para os filtros selecionados.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Aba de Engajamento de Vídeo -->
+                <div class="tab-pane fade" id="video-engagement-view" role="tabpanel" aria-labelledby="video-engagement-tab">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-play me-2"></i>Métricas de Engajamento de Vídeo</h5>
+                            <div class="actions">
+                                <button id="exportVideoBtn" class="btn btn-sm btn-success">
+                                    <i class="fas fa-file-excel me-1"></i>Exportar Excel
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="loading-video" class="spinner-border text-primary d-none" role="status">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                            
+                            <!-- Gráficos de Engajamento de Vídeo -->
+                            <div class="row">
+                                <div class="col-md-6 mb-4">
+                                    <div class="chart-container p-3 bg-white rounded shadow-sm">
+                                        <h6 class="text-muted mb-3"><i class="fas fa-play me-1"></i>Reproduções de Vídeo</h6>
+                                        <canvas id="videoPlaysChart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-4">
+                                    <div class="chart-container p-3 bg-white rounded shadow-sm">
+                                        <h6 class="text-muted mb-3"><i class="fas fa-clock me-1"></i>Tempo Médio Assistido</h6>
+                                        <canvas id="videoAvgTimeChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-4">
+                                    <div class="chart-container p-3 bg-white rounded shadow-sm">
+                                        <h6 class="text-muted mb-3"><i class="fas fa-stopwatch me-1"></i>Vídeos Assistidos por 10s</h6>
+                                        <canvas id="video10SecChart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-4">
+                                    <div class="chart-container p-3 bg-white rounded shadow-sm">
+                                        <h6 class="text-muted mb-3"><i class="fas fa-hourglass-half me-1"></i>Vídeos Assistidos por 30s</h6>
+                                        <canvas id="video30SecChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="noVideoData" class="alert alert-info text-center d-none">
+                                Nenhum dado de engajamento de vídeo encontrado para os filtros selecionados.
                             </div>
                         </div>
                     </div>

@@ -391,7 +391,7 @@ function setupUserInterface(user) {
                           <th>Status</th>
                           <th>Data de Criação</th>
                           <th>Usuários Vinculados</th>
-                          <th>Campanhas Ativas</th>
+                          <th>Saldo</th>
                           <th>Ações</th>
                         </tr>
                       </thead>

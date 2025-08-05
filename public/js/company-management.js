@@ -1,5 +1,30 @@
 // ================= COMPANY MANAGEMENT FUNCTIONS =================
 
+// Company Management Module
+
+// Helper functions for saldo formatting
+function formatSaldo(saldo) {
+  if (saldo === null || saldo === undefined) {
+    return '0,00';
+  }
+  const numericValue = parseFloat(saldo);
+  if (isNaN(numericValue)) {
+    return '0,00';
+  }
+  return numericValue.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function getSaldoClass(saldo) {
+  if (saldo === null || saldo === undefined) {
+    return 'text-muted';
+  }
+  const numericValue = parseFloat(saldo);
+  if (isNaN(numericValue) || numericValue === 0) {
+    return 'text-muted';
+  }
+  return numericValue > 0 ? 'text-success' : 'text-danger';
+}
+
 // Setup company form listener
 function setupCompanyFormListener() {
   const companyForm = document.getElementById('company-form');
@@ -36,7 +61,8 @@ function setupCompanyFormListener() {
     const companyData = {
       nome: name,
       ad_account_id: adAccountId,
-      descricao: description
+      descricao: description,
+      created_at: new Date().toISOString() // Data local de criação
     };
     
     console.log('Company data to save:', companyData);
@@ -144,13 +170,21 @@ async function loadCompaniesForManagement() {
   companiesTableBody.innerHTML = '';
   
   try {
-    const response = await fetch('/api/companies');
+    const timestamp = new Date().getTime();
+    const response = await fetch(`/api/companies?t=${timestamp}`);
     
     if (!response.ok) {
       throw new Error('Erro ao carregar empresas');
     }
     
     const companies = await response.json();
+    console.log('📊 [loadCompaniesForManagement] Dados recebidos do backend:', companies);
+    console.log('📊 [loadCompaniesForManagement] Saldos das empresas:', companies.map(c => ({
+      empresa: c.empresa,
+      ad_account_id: c.ad_account_id,
+      saldo: c.saldo,
+      tipo_saldo: typeof c.saldo
+    })));
     
     loadingDiv.classList.add('d-none');
     
@@ -171,11 +205,16 @@ async function loadCompaniesForManagement() {
     companiesTableBody.innerHTML = companies.map(company => `
       <tr>
         <td>${company.empresa}</td>
-        <td>-</td>
         <td><code>${company.ad_account_id}</code></td>
         <td><span class="badge bg-success">Ativo</span></td>
-        <td>${new Date(company.created_at).toLocaleDateString('pt-BR')}</td>
-        <td>${new Date(company.created_at).toLocaleDateString('pt-BR')}</td>
+        <td>${company.created_at ? new Date(company.created_at).toLocaleDateString('pt-BR') : 'N/A'}</td>
+        <td>-</td>
+        <td>
+          <span class="${getSaldoClass(company.saldo)}">
+            R$ ${formatSaldo(company.saldo)}
+          </span>
+          ${company.saldo_updated_at ? `<br><small class="text-muted">Atualizado: ${new Date(company.saldo_updated_at).toLocaleDateString('pt-BR')}</small>` : ''}
+        </td>
         <td>
           <div class="btn-group btn-group-sm">
             <button type="button" class="btn btn-outline-primary" onclick="editCompany('${company.ad_account_id}')" title="Editar">

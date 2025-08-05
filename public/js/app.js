@@ -556,7 +556,7 @@ function populateMetricsTable(metricsData) {
                 <td>${metric.impressions != null ? metric.impressions : '-'}</td>
                 <td>${metric.clicks != null ? metric.clicks : '-'}</td>
                 <td>${metric.cpc != null ? formatCurrency(metric.cpc) : '-'}</td>
-                <td>${metric.ctr != null ? metric.ctr.toFixed(4) : '-'}</td>
+                <td>${metric.ctr != null ? `${metric.ctr.toFixed(2)}%` : '-'}</td>
             `;
         } else {
             // Mantém o padrão antigo
@@ -632,6 +632,9 @@ function populateCompanyMetricsTable(metricsData) {
         const formattedCPC = formatCurrency(metric.cpc || 0);
         const totalImpressions = (metric.impressoes || 0).toLocaleString('pt-BR');
         
+        // Format CTR as percentage
+        const formattedCTR = metric.ctr != null ? `${metric.ctr.toFixed(2)}%` : '-';
+        
         // Create table cells for campaign metrics
         row.innerHTML = `
             <td>${metric.company}</td>
@@ -639,6 +642,7 @@ function populateCompanyMetricsTable(metricsData) {
             <td>${formattedExpense}</td>
             <td>${formattedCPC}</td>
             <td>${totalImpressions}</td>
+            <td>${formattedCTR}</td>
         `;
         
         tableBody.appendChild(row);
@@ -653,13 +657,15 @@ function populateCompanyMetricsTable(metricsData) {
     const totalExpense = metricsData.reduce((sum, item) => sum + (item.expense || 0), 0);
     const totalImpressions = metricsData.reduce((sum, item) => sum + (item.impressoes || 0), 0);
     
-    // Calculate average CPC
+    // Calculate average CPC and CTR
     const avgCPC = totalRecords > 0 ? totalExpense / totalRecords : 0;
+    const avgCTR = totalImpressions > 0 ? (totalRecords / totalImpressions) * 100 : 0;
     
     // Format values
     const formattedTotalExpense = formatCurrency(totalExpense);
     const formattedAvgCPC = formatCurrency(avgCPC);
     const formattedTotalImpressions = totalImpressions.toLocaleString('pt-BR');
+    const formattedAvgCTR = `${avgCTR.toFixed(2)}%`;
     
     // Create totals row
     totalsRow.innerHTML = `
@@ -668,6 +674,7 @@ function populateCompanyMetricsTable(metricsData) {
         <td>${formattedTotalExpense}</td>
         <td>${formattedAvgCPC}</td>
         <td>${formattedTotalImpressions}</td>
+        <td>${formattedAvgCTR}</td>
     `;
     
     tableBody.appendChild(totalsRow);

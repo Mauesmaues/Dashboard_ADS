@@ -4,6 +4,7 @@ const DataController = require('../controllers/dataController');
 const AuthController = require('../controllers/authController');
 const CampanhasController = require('../controllers/campanhasController');
 const CompanyController = require('../controllers/companyController');
+const { testSaldoEndpoint } = require('../controllers/testController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Auth routes
@@ -37,6 +38,9 @@ router.get('/debug/users', async (req, res) => {
   }
 });
 
+// Test endpoint for saldo debugging
+router.get('/test/saldo', testSaldoEndpoint);
+
 // User management routes (admin only)
 router.get('/users', authMiddleware.isAuthenticated, authMiddleware.isAdmin, AuthController.getAllUsers);
 router.post('/users', authMiddleware.isAuthenticated, authMiddleware.isAdmin, AuthController.createUser);
@@ -44,8 +48,7 @@ router.put('/users/:email', authMiddleware.isAuthenticated, authMiddleware.isAdm
 router.delete('/users/:email', authMiddleware.isAuthenticated, authMiddleware.isAdmin, AuthController.deleteUser);
 
 // Protected data routes
-// Get list of companies (filtered by user access)
-router.get('/companies', authMiddleware.isAuthenticated, DataController.getCompanies);
+// Get list of companies for filters (will use CompanyController.getAllCompanies below)
 
 // Get metrics data filtered by date and company
 router.get('/metrics', authMiddleware.isAuthenticated, DataController.getMetrics);
