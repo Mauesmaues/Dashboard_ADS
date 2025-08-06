@@ -300,6 +300,10 @@ function initializeDatePickers(dateRangeData = null) {
     // Inicializar date picker para data de início
     flatpickr('#startDate', {
         ...dateOptions,
+        onChange: function(selectedDates, dateStr) {
+            // Desmarcar filtros rápidos quando usuário seleciona data manual
+            clearActiveFilterButtons();
+        },
         onClose: function(selectedDates, dateStr) {
             // Atualiza a data mínima do endDate para a data selecionada no startDate
             const endDatePicker = document.getElementById('endDate')._flatpickr;
@@ -312,16 +316,58 @@ function initializeDatePickers(dateRangeData = null) {
     // Inicializar date picker para data de fim
     flatpickr('#endDate', {
         ...dateOptions,
+        onChange: function(selectedDates, dateStr) {
+            // Desmarcar filtros rápidos quando usuário seleciona data manual
+            clearActiveFilterButtons();
+        },
         onClose: function(selectedDates, dateStr) {
-            // Atualiza a data máxima do startDate para a data selecionada no endDate
-            const startDatePicker = document.getElementById('startDate')._flatpickr;
-            if (selectedDates[0]) {
-                startDatePicker.set('maxDate', selectedDates[0]);
+            // NÃO atualizar maxDate do startDate para evitar apagar a data inicial
+            // Apenas validar se a data final é posterior à inicial
+            const startDateValue = document.getElementById('startDate').value;
+            if (startDateValue && selectedDates[0]) {
+                const startDate = parseDate(startDateValue);
+                if (startDate && selectedDates[0] < startDate) {
+                    // Se data final for anterior à inicial, mostrar aviso
+                    if (typeof showToast === 'function') {
+                        showToast('Atenção', 'A data final deve ser posterior à data inicial', 'warning');
+                    }
+                }
             }
         }
     });
     
     console.log('Date pickers inicializados com sucesso');
+}
+
+// Clear active filter buttons when user manually selects dates
+function clearActiveFilterButtons() {
+    document.querySelectorAll('.btn-filter').forEach(button => {
+        button.classList.remove('active');
+    });
+}
+
+// Parse date from DD/MM/YYYY format
+function parseDate(dateStr) {
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+    
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+    const year = parseInt(parts[2], 10);
+    
+    const date = new Date(year, month, day);
+    
+    // Validate parsed date
+    if (
+        isNaN(date.getTime()) ||
+        date.getDate() !== day ||
+        date.getMonth() !== month ||
+        date.getFullYear() !== year
+    ) {
+        return null;
+    }
+    
+    return date;
 }
 
 // Set up event listeners

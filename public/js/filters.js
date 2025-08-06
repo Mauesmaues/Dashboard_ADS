@@ -165,11 +165,33 @@ function applyDateFilterPreset(preset) {
     const dateRange = applyDateRangePreset(preset);
     
     if (dateRange) {
-        document.getElementById('startDate').value = dateRange.startDate;
-        document.getElementById('endDate').value = dateRange.endDate;
+        // Atualizar os inputs de data
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        
+        if (startDateInput && endDateInput) {
+            startDateInput.value = dateRange.startDate;
+            endDateInput.value = dateRange.endDate;
+            
+            // Atualizar os date pickers se existirem
+            if (startDateInput._flatpickr) {
+                startDateInput._flatpickr.setDate(dateRange.startDate, false);
+            }
+            if (endDateInput._flatpickr) {
+                endDateInput._flatpickr.setDate(dateRange.endDate, false);
+            }
+        }
         
         // Highlight the active button
         updateActiveFilterButton(preset);
+        
+        // Aplicar os filtros automaticamente
+        if (typeof loadMetricsData === 'function') {
+            loadMetricsData();
+        }
+        if (typeof loadCompanyMetricsData === 'function') {
+            loadCompanyMetricsData();
+        }
     }
 }
 

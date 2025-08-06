@@ -97,51 +97,15 @@ class N8NDataModelSimples {
       
       console.log(`[N8NDataModelSimples] 📅 Datas convertidas: ${dataInicio} -> ${startDateFormatted}, ${dataFim} -> ${endDateFormatted}`);
       
+      // Buscar TODAS as métricas no período (sem filtro inicial de empresa)
       let query = supabase
         .from('campanhas_n8n')
         .select('*')
         .gte('date_start', startDateFormatted)
         .lte('date_start', endDateFormatted)
-        .order('date_start', { ascending: false });
-      
-      // Filtrar por empresa específica (convertendo nome da empresa para ad_account_id)
-      if (empresa) {
-        const adAccountId = await this.getAdAccountIdFromEmpresa(empresa);
-        if (adAccountId) {
-          console.log(`[N8NDataModelSimples] Filtrando por empresa específica "${empresa}" -> ad_account_id "${adAccountId}"`);
-          query = query.eq('ad_account_id', adAccountId);
-        } else {
-          console.log(`[N8NDataModelSimples] Empresa "${empresa}" não encontrada no mapeamento`);
-        }
-      }
-      // Se não há empresa específica mas há limitação de empresas permitidas
-      else if (allowedCompanies && allowedCompanies.length > 0) {
-        console.log(`[N8NDataModelSimples] Aplicando filtro de empresas permitidas: ${JSON.stringify(allowedCompanies)}`);
-        
-        // Converter nomes de empresas para ad_account_ids
-        const allowedAdAccountIds = [];
-        for (const empresaName of allowedCompanies) {
-          const { data, error } = await supabase
-            .from('empresa_ad_accounts')
-            .select('ad_account_id')
-            .eq('empresa', empresaName)
-            .eq('ativo', true);
-          
-          if (!error && data && data.length > 0) {
-            data.forEach(row => {
-              allowedAdAccountIds.push(row.ad_account_id);
-            });
-          }
-        }
-        
-        if (allowedAdAccountIds.length > 0) {
-          console.log(`[N8NDataModelSimples] Filtrando por ad_account_ids permitidos: ${JSON.stringify(allowedAdAccountIds)}`);
-          query = query.in('ad_account_id', allowedAdAccountIds);
-        } else {
-          console.log(`[N8NDataModelSimples] Nenhum ad_account_id encontrado para as empresas permitidas - retornando dados vazios`);
-          return [];
-        }
-      }
+        .order('date_start', { ascending: true })
+        .order('ad_account_id', { ascending: true })
+        .order('id', { ascending: false }); // Ordenar por ID desc para pegar os mais recentes primeiro
       
       const { data, error } = await query;
       
@@ -150,29 +114,17 @@ class N8NDataModelSimples {
         throw error;
       }
       
-      // Agrupar por data, mantendo apenas a última métrica (maior ID) de cada conta por dia
-      const metricas = {};
+      console.log(`[N8NDataModelSimples] 📊 Total de registros encontrados no período: ${data.length}`);
+      
+      // NOVA LÓGICA: Buscar a última métrica (maior ID) de cada empresa por dia
+      const ultimasMetricasPorDiaEmpresa = {};
       
       // Cache para mapeamento ad_account_id -> empresa
       const empresaCache = {};
       
-      // Primeiro passo: agrupar por data e ad_account_id, mantendo apenas o maior ID
-      const dadosPorDiaEConta = {};
-      
+      // Primeiro: mapear ad_account_id para empresas e agrupar
       for (const item of data) {
         const dataItem = item.date_start;
-        const adAccountId = item.ad_account_id;
-        const chave = `${dataItem}_${adAccountId}`;
-        
-        // Manter apenas o registro com maior ID para cada combinação data + conta
-        if (!dadosPorDiaEConta[chave] || item.id > dadosPorDiaEConta[chave].id) {
-          dadosPorDiaEConta[chave] = item;
-        }
-      }
-      
-      // Segundo passo: processar apenas os registros únicos (últimas métricas de cada conta por dia)
-      for (const item of Object.values(dadosPorDiaEConta)) {
-        const data = item.date_start;
         const adAccountId = item.ad_account_id;
         
         // Obter nome da empresa (com cache)
@@ -181,80 +133,112 @@ class N8NDataModelSimples {
         }
         const nomeEmpresa = empresaCache[adAccountId];
         
+        // Aplicar filtros de empresa agora, após mapear para nome
+        let deveIncluir = true;
+        
+        // Se empresa específica foi selecionada
+        if (empresa && nomeEmpresa !== empresa) {
+          deveIncluir = false;
+        }
+        
+        // Se há limitação de empresas permitidas
+        if (allowedCompanies && allowedCompanies.length > 0 && !allowedCompanies.includes(nomeEmpresa)) {
+          deveIncluir = false;
+        }
+        
+        if (!deveIncluir) continue;
+        
+        // Chave única: data + empresa
+        const chave = `${dataItem}_${nomeEmpresa}`;
+        
+        // Manter apenas o registro com maior ID para cada combinação data + empresa
+        if (!ultimasMetricasPorDiaEmpresa[chave] || item.id > ultimasMetricasPorDiaEmpresa[chave].id) {
+          ultimasMetricasPorDiaEmpresa[chave] = {
+            ...item,
+            nomeEmpresa: nomeEmpresa
+          };
+        }
+      }
+      
+      console.log(`[N8NDataModelSimples] 🎯 Últimas métricas por dia/empresa: ${Object.keys(ultimasMetricasPorDiaEmpresa).length} registros únicos`);
+      
+      // Agrupar métricas por data para calcular médias e totais
+      const metricas = {};
+      
+      for (const item of Object.values(ultimasMetricasPorDiaEmpresa)) {
+        const data = item.date_start;
+        const nomeEmpresa = item.nomeEmpresa;
+        
         if (!metricas[data]) {
           metricas[data] = {
             data: data,
             total_gasto: 0,
             total_impressoes: 0,
             total_cliques: 0,
-            empresas: {}
+            empresas: {},
+            count_empresas: 0
           };
         }
         
-        // Somar totais do dia (agora usando apenas últimas métricas de cada conta)
-        metricas[data].total_gasto += (parseFloat(item.spend) || 0) / 100; // Dividir por 100 para converter centavos em reais
-        metricas[data].total_impressoes += parseInt(item.impressions) || 0;
-        metricas[data].total_cliques += parseInt(item.clicks) || 0;
+        // Somar totais do dia (usando apenas últimas métricas de cada empresa)
+        const gasto = (parseFloat(item.spend) || 0) / 100; // Converter centavos em reais
+        const impressoes = parseInt(item.impressions) || 0;
+        const cliques = parseInt(item.clicks) || 0;
+        
+        metricas[data].total_gasto += gasto;
+        metricas[data].total_impressoes += impressoes;
+        metricas[data].total_cliques += cliques;
+        
+        // Contar empresas únicas por dia
+        if (!metricas[data].empresas[nomeEmpresa]) {
+          metricas[data].count_empresas++;
+        }
         
         // Dados por empresa (usando nome real da empresa)
-        if (!metricas[data].empresas[nomeEmpresa]) {
-          metricas[data].empresas[nomeEmpresa] = {
-            gasto: 0,
-            impressoes: 0,
-            cliques: 0,
-            contas: []
-          };
-        }
-        
-        metricas[data].empresas[nomeEmpresa].gasto += (parseFloat(item.spend) || 0) / 100; // Dividir por 100 para converter centavos em reais
-        metricas[data].empresas[nomeEmpresa].impressoes += parseInt(item.impressions) || 0;
-        metricas[data].empresas[nomeEmpresa].cliques += parseInt(item.clicks) || 0;
-        metricas[data].empresas[nomeEmpresa].contas.push(item.ad_account_id);
+        metricas[data].empresas[nomeEmpresa] = {
+          nome: nomeEmpresa,
+          gasto: gasto,
+          impressoes: impressoes,
+          cliques: cliques,
+          cpc: cliques > 0 ? gasto / cliques : 0,
+          ctr: impressoes > 0 ? (cliques / impressoes) * 100 : 0
+        };
       }
       
-      // Converter para array e formatar para métricas de campanhas publicitárias
-      const resultado = Object.values(metricas).map(dia => {
-        // Métricas principais de campanhas
-        const totalGasto = dia.total_gasto;
-        const totalImpressoes = dia.total_impressoes;
-        const totalCliques = dia.total_cliques;
+      // Converter para array e calcular médias por dia
+      const dadosProcessados = Object.values(metricas).map(item => {
+        const countEmpresas = item.count_empresas || 1;
         
-        // Calcular métricas derivadas
-        const cpcMedio = totalCliques > 0 ? (totalGasto / totalCliques) : 0;
-        const ctrMedio = totalImpressoes > 0 ? ((totalCliques / totalImpressoes) * 100) : 0;
+        // Calcular CPC e CTR médios do dia
+        const cpc = item.total_cliques > 0 ? item.total_gasto / item.total_cliques : 0;
+        const ctr = item.total_impressoes > 0 ? (item.total_cliques / item.total_impressoes) * 100 : 0;
         
         return {
-          date: dia.data,
-          formattedDate: dia.data,
-          // Métricas principais de campanhas
-          totalSpend: totalGasto,
-          totalImpressions: totalImpressoes, 
-          totalClicks: totalCliques,
-          avgCPC: cpcMedio,
-          avgCTR: ctrMedio,
-          // Manter compatibilidade com formato antigo (para não quebrar)
-          totalRecords: totalCliques, // Usar cliques como "registros" para compatibilidade
-          expense: totalGasto,
-          roosterCost: 0,
-          cplTarget: cpcMedio, // CPC como CPL Target
-          totalCPL: cpcMedio,  // CPC como CPL Total
-          // Dados originais para referência
-          total_gasto: dia.total_gasto,
-          total_impressoes: dia.total_impressoes,
-          total_cliques: dia.total_cliques,
-          empresas: dia.empresas
+          data: moment(item.data).format('DD/MM/YYYY'),
+          spend: item.total_gasto,
+          impressions: item.total_impressoes,
+          clicks: item.total_cliques,
+          cpc: cpc,
+          ctr: ctr,
+          empresas: item.empresas,
+          count_empresas: countEmpresas
         };
+      }).sort((a, b) => {
+        // Ordenar por data crescente
+        return moment(a.data, 'DD/MM/YYYY').diff(moment(b.data, 'DD/MM/YYYY'));
       });
       
-      console.log(`✅ Processados ${resultado.length} dias de métricas`);
-      return resultado;
+      console.log(`[N8NDataModelSimples] ✅ Retornando ${dadosProcessados.length} dias processados`);
+      console.log(`[N8NDataModelSimples] 📈 Resumo: Total gasto=${dadosProcessados.reduce((sum, d) => sum + d.spend, 0).toFixed(2)}, Total cliques=${dadosProcessados.reduce((sum, d) => sum + d.clicks, 0)}`);
       
+      return dadosProcessados;
     } catch (error) {
-      console.error('Erro em getDailyMetrics:', error);
+      console.error('[N8NDataModelSimples] Erro ao buscar métricas diárias:', error);
       throw error;
     }
   }
 
+  // Obter lista de empresas únicas dos dados
   // Obter empresas disponíveis (usando mapeamento empresa_ad_accounts)
   static async getCompanies() {
     try {
