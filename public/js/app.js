@@ -58,29 +58,45 @@ async function initializeApp() {
         // Carrega dados iniciais
         await loadMetricsData();
         
-        // Configura listeners de troca de abas
-        const dailyTab = document.getElementById('daily-tab');
-        if (dailyTab) {
-            dailyTab.addEventListener('click', () => {
-                if (typeof toggleCharts === 'function') {
-                    toggleCharts(false);
-                }
+        // Configura listeners de troca de sub-abas de gráficos
+        const companyChartsTab = document.getElementById('company-charts-tab');
+        if (companyChartsTab) {
+            companyChartsTab.addEventListener('click', () => {
+                console.log('Aba "Por Conta" selecionada');
+                // Garantir que os gráficos de empresa são mostrados
+                setTimeout(() => {
+                    if (typeof updateCompanyCharts === 'function') {
+                        const companyTableBody = document.getElementById('companyTableBody');
+                        if (companyTableBody && companyTableBody.children.length > 0) {
+                            console.log('Atualizando gráficos de empresa...');
+                            // Buscar os dados da tabela para atualizar os gráficos
+                            loadCompanyMetricsData();
+                        }
+                    }
+                }, 100);
             });
         }
         
-        const companyTab = document.getElementById('company-tab');
-        if (companyTab) {
-            companyTab.addEventListener('click', () => {
-                if (typeof toggleCharts === 'function') {
-                    toggleCharts(true);
-                }
-                
-                // Carrega dados de empresa se ainda não foram carregados
-                const companyTableBody = document.getElementById('companyTableBody');
-                if (companyTableBody && companyTableBody.children.length === 0) {
-                    loadCompanyMetricsData();
-                }
+        const dailyChartsTab = document.getElementById('daily-charts-tab');
+        if (dailyChartsTab) {
+            dailyChartsTab.addEventListener('click', () => {
+                console.log('Aba "Por Dia" selecionada');
+                // Garantir que os gráficos diários são mostrados
+                setTimeout(() => {
+                    if (typeof updateCharts === 'function') {
+                        console.log('Atualizando gráficos diários...');
+                        // Buscar os dados para atualizar os gráficos
+                        loadMetricsData();
+                    }
+                }, 100);
             });
+        }
+        
+        // Como agora só temos uma aba principal (Campanhas por Conta), 
+        // carregamos os dados de empresa automaticamente
+        const companyTableBody = document.getElementById('companyTableBody');
+        if (companyTableBody && companyTableBody.children.length === 0) {
+            loadCompanyMetricsData();
         }
         
     } catch (error) {
@@ -343,18 +359,8 @@ function setupEventListeners() {
         });
     });
     
-    // Export daily data button
-    document.getElementById('exportDailyBtn').addEventListener('click', exportToExcel);
-    
     // Export company data button
     document.getElementById('exportCompanyBtn').addEventListener('click', exportCompanyDataToExcel);
-    
-    // Tab change event - load company data when switching to company tab
-    document.getElementById('company-tab').addEventListener('click', async () => {
-        if (document.getElementById('companyTableBody').children.length === 0) {
-            await loadCompanyMetricsData();
-        }
-    });
 }
 
 // Load metrics data based on filters

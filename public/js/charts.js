@@ -302,13 +302,6 @@ function updateCharts(metricsData) {
         if (!registersChart || !cplChart) {
             console.log('Charts need to be initialized');
             
-            // Garantir que a aba daily está visível
-            const dailyChartsContainer = document.getElementById('daily-charts');
-            if (dailyChartsContainer && dailyChartsContainer.classList.contains('d-none')) {
-                console.log('Daily charts container is hidden, showing it first');
-                dailyChartsContainer.classList.remove('d-none');
-            }
-            
             initializeCharts();
             
             // Verificar se a inicialização foi bem-sucedida
@@ -512,37 +505,6 @@ function formatCurrency(value) {
         style: 'currency',
         currency: 'BRL'
     }).format(value);
-}
-
-// Toggle between daily and company charts
-function toggleCharts(showCompanyCharts) {
-    const dailyChartsContainer = document.getElementById('daily-charts');
-    const companyChartsContainer = document.getElementById('company-charts');
-    const companyTotalsContainer = document.getElementById('company-totals');
-    
-    if (showCompanyCharts) {
-        dailyChartsContainer.classList.add('d-none');
-        companyChartsContainer.classList.remove('d-none');
-        
-        // Show company totals, hide default totals
-        if (companyTotalsContainer) {
-            companyTotalsContainer.classList.remove('d-none');
-        }
-        
-        // Update company totals if needed
-        const companyTableBody = document.getElementById('companyTableBody');
-        if (companyTableBody && companyTableBody.children.length > 0) {
-            updateCompanyTotals();
-        }
-    } else {
-        dailyChartsContainer.classList.remove('d-none');
-        companyChartsContainer.classList.add('d-none');
-        
-        // Hide company totals
-        if (companyTotalsContainer) {
-            companyTotalsContainer.classList.add('d-none');
-        }
-    }
 }
 
 // Update totals for campaign data (N8N)
@@ -786,14 +748,6 @@ document.addEventListener('DOMContentLoaded', () => {    // Inicializa os gráfi
         console.error('Error initializing charts:', error);
     }
     
-    // Set up tab change event for charts
-    document.getElementById('daily-tab').addEventListener('click', () => {
-        toggleCharts(false);
-    });
-    
-    document.getElementById('company-tab').addEventListener('click', () => {
-        toggleCharts(true);
-    });
       // Update charts when window resizes
     window.addEventListener('resize', () => {
         if (registersChart && typeof registersChart.resize === 'function') registersChart.resize();
