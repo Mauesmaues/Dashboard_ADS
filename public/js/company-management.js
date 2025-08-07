@@ -275,6 +275,9 @@ async function deleteCompany(adAccountId, companyName) {
     
   } catch (error) {
     console.error('Error deleting company:', error);
-    showToast('Erro', error.message, 'error');
+    // Apenas mostrar toast se não for um erro de operação automática
+    if (error.message && !error.message.includes('automática')) {
+      showToast('Erro', error.message, 'error');
+    }
   }
 }

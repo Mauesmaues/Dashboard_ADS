@@ -170,6 +170,9 @@ function applyDateFilterPreset(preset) {
         const endDateInput = document.getElementById('endDate');
         
         if (startDateInput && endDateInput) {
+            // Definir uma flag para indicar que é uma atualização programática
+            window.isPresetUpdate = true;
+            
             startDateInput.value = dateRange.startDate;
             endDateInput.value = dateRange.endDate;
             
@@ -180,6 +183,11 @@ function applyDateFilterPreset(preset) {
             if (endDateInput._flatpickr) {
                 endDateInput._flatpickr.setDate(dateRange.endDate, false);
             }
+            
+            // Reset flag after a brief delay
+            setTimeout(() => {
+                window.isPresetUpdate = false;
+            }, 100);
         }
         
         // Highlight the active button
@@ -221,9 +229,36 @@ function setupDateFilterPresetButtons() {
     });
 }
 
+// Clear active filter buttons when dates are manually changed
+function clearActiveFilterButtons() {
+    // Only clear if it's not a programmatic update
+    if (window.isPresetUpdate) return;
+    
+    document.querySelectorAll('.btn-filter').forEach(button => {
+        button.classList.remove('active');
+    });
+}
+
+// Setup date input change listeners
+function setupDateInputListeners() {
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    
+    if (startDateInput) {
+        startDateInput.addEventListener('change', clearActiveFilterButtons);
+        startDateInput.addEventListener('input', clearActiveFilterButtons);
+    }
+    
+    if (endDateInput) {
+        endDateInput.addEventListener('change', clearActiveFilterButtons);
+        endDateInput.addEventListener('input', clearActiveFilterButtons);
+    }
+}
+
 // Initialize date filters
 function initializeDateFilters() {
     setupDateFilterPresetButtons();
+    setupDateInputListeners();
 }
 
 // Export functions

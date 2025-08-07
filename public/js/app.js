@@ -1,4 +1,8 @@
 // Lógica principal da aplicação
+
+// Flag para controlar se estamos na fase de inicialização
+let isInitializing = true;
+
 document.addEventListener('DOMContentLoaded', () => {
     // Inicializa dados e interface
     initializeApp();
@@ -30,11 +34,19 @@ async function initializeApp() {
         // Inicializa tooltips do Bootstrap
         inicializarTooltips();
         
-        // Carrega datas padrão
-        await carregarDataspadrao();
+        // Carrega datas padrão (com tratamento de erro silencioso)
+        try {
+            await carregarDataspadrao();
+        } catch (error) {
+            console.warn('Falha ao carregar datas padrão, usando valores default:', error);
+        }
         
-        // Carrega empresas para o dropdown
-        await carregarEmpresas();
+        // Carrega empresas para o dropdown (com tratamento de erro silencioso)
+        try {
+            await carregarEmpresas();
+        } catch (error) {
+            console.warn('Falha ao carregar empresas, continuando sem elas:', error);
+        }
         
         // Inicializa filtros de data
         if (window.filters && typeof window.filters.initializeDateFilters === 'function') {
@@ -96,14 +108,22 @@ async function initializeApp() {
         // carregamos os dados de empresa automaticamente
         const companyTableBody = document.getElementById('companyTableBody');
         if (companyTableBody && companyTableBody.children.length === 0) {
-            loadCompanyMetricsData();
+            try {
+                await loadCompanyMetricsData();
+            } catch (error) {
+                console.warn('Falha ao carregar dados iniciais durante inicialização:', error);
+                // Não mostrar popup durante inicialização
+            }
         }
         
     } catch (error) {
         console.error('Error initializing app:', error);
-        showErrorMessage('Falha ao inicializar a aplicação. Verifique a conexão com o servidor.');
+        // Remover toast de erro durante inicialização - apenas log no console
+        console.warn('Falha ao inicializar a aplicação. Verifique a conexão com o servidor.');
     } finally {
         showLoading(false);
+        // Marcar que a inicialização foi concluída
+        isInitializing = false;
     }
 }
 
@@ -242,12 +262,18 @@ async function carregarEmpresas() {
         
         // Carregar dados automaticamente após carregar empresas
         console.log('🔄 [DEBUG] Carregando dados de empresas automaticamente...');
-        setTimeout(() => {
-            loadCompanyMetricsData();
+        setTimeout(async () => {
+            try {
+                await loadCompanyMetricsData();
+            } catch (error) {
+                console.warn('Falha ao carregar dados iniciais de empresas:', error);
+                // Não mostrar popup durante carregamento inicial
+            }
         }, 1000);
     } catch (erro) {
         console.error('❌ [DEBUG] Erro ao carregar empresas:', erro);
-        showErrorMessage('Falha ao carregar empresas. Verifique se você está logado.');
+        // Remover toast de erro durante carregamento - apenas log no console
+        console.warn('Falha ao carregar empresas. Verifique se você está logado.');
     } finally {
         showLoading(false);
     }
@@ -301,13 +327,15 @@ function initializeDatePickers(dateRangeData = null) {
     flatpickr('#startDate', {
         ...dateOptions,
         onChange: function(selectedDates, dateStr) {
-            // Desmarcar filtros rápidos quando usuário seleciona data manual
-            clearActiveFilterButtons();
+            // Só desmarcar filtros rápidos se não for uma atualização programática
+            if (!window.isPresetUpdate && typeof clearActiveFilterButtons === 'function') {
+                clearActiveFilterButtons();
+            }
         },
         onClose: function(selectedDates, dateStr) {
             // Atualiza a data mínima do endDate para a data selecionada no startDate
             const endDatePicker = document.getElementById('endDate')._flatpickr;
-            if (selectedDates[0]) {
+            if (selectedDates[0] && endDatePicker) {
                 endDatePicker.set('minDate', selectedDates[0]);
             }
         }
@@ -317,8 +345,10 @@ function initializeDatePickers(dateRangeData = null) {
     flatpickr('#endDate', {
         ...dateOptions,
         onChange: function(selectedDates, dateStr) {
-            // Desmarcar filtros rápidos quando usuário seleciona data manual
-            clearActiveFilterButtons();
+            // Só desmarcar filtros rápidos se não for uma atualização programática
+            if (!window.isPresetUpdate && typeof clearActiveFilterButtons === 'function') {
+                clearActiveFilterButtons();
+            }
         },
         onClose: function(selectedDates, dateStr) {
             // NÃO atualizar maxDate do startDate para evitar apagar a data inicial
@@ -337,6 +367,42 @@ function initializeDatePickers(dateRangeData = null) {
     });
     
     console.log('Date pickers inicializados com sucesso');
+}
+
+// Função global para limpar botões de filtro ativos
+function clearActiveFilterButtons() {
+    // Only clear if it's not a programmatic update
+    if (window.isPresetUpdate) return;
+    
+    document.querySelectorAll('.btn-filter').forEach(button => {
+        button.classList.remove('active');
+    });
+}
+
+// Parse date from DD/MM/YYYY format (função auxiliar global)
+function parseDate(dateStr) {
+    if (!dateStr) return null;
+    
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+    
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+    const year = parseInt(parts[2], 10);
+    
+    const date = new Date(year, month, day);
+    
+    // Validate parsed date
+    if (
+        isNaN(date.getTime()) ||
+        date.getDate() !== day ||
+        date.getMonth() !== month ||
+        date.getFullYear() !== year
+    ) {
+        return null;
+    }
+    
+    return date;
 }
 
 // Clear active filter buttons when user manually selects dates
@@ -838,7 +904,19 @@ function showCompanyLoading(show) {
 }
 
 // Show error message
-function showErrorMessage(message) {
+function showErrorMessage(message, showToastParam = true) {
+    // Log the error to console always
+    console.error('Error:', message);
+    
+    // During initialization, never show toasts
+    if (isInitializing) {
+        console.warn('Erro durante inicialização (popup suprimido):', message);
+        return;
+    }
+    
+    // Only show toast if explicitly requested
+    if (!showToastParam) return;
+    
     // Check if we have the toast function available from auth.js
     if (typeof showToast === 'function') {
         showToast('Erro', message, 'error');

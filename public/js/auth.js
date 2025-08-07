@@ -1078,11 +1078,13 @@ async function editUser(email) {
       
       modal.show();
     } else {
-      showToast('Erro', `Usuário ${email} não encontrado`, 'error');
+      console.warn(`Usuário ${email} não encontrado`);
+      // Não mostrar toast para usuário não encontrado durante navegação
     }
   } catch (error) {
     console.error('Error loading user data:', error);
-    showToast('Erro', 'Falha ao carregar dados do usuário', 'error');
+    // Apenas log do erro, sem toast intrusivo
+    console.warn('Falha ao carregar dados do usuário');
   }
 }
 

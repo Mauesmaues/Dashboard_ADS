@@ -434,26 +434,27 @@ class N8NDataModelSimples {
         // Converter para formato esperado
         const resultado = Object.values(empresasMetricas).map(empresa => ({
           company: empresa.company,
-          totalRecords: empresa.clicks,
-          expense: empresa.expense,
+          totalRecords: empresa.clicks, // Total de Cliques = cliques da última métrica do dia
+          expense: empresa.expense, // Gasto Total = gasto da última métrica do dia
           roosterCost: 0,
           totalBilling: empresa.expense,
-          impressoes: empresa.impressions,
+          impressoes: empresa.impressions, // Impressões = impressões da última métrica do dia
           cliques: empresa.clicks,
           plataforma: empresa.plataforma,
-          cplTarget: empresa.clicks > 0 ? (empresa.expense / empresa.clicks) : 0,
+          cplTarget: empresa.clicks > 0 ? (empresa.expense / empresa.clicks) : 0, // CPC = Gasto ÷ Cliques
           totalCPL: empresa.clicks > 0 ? (empresa.expense / empresa.clicks) : 0,
-          cpc: empresa.cpc,
-          ctr: empresa.ctr
+          cpc: empresa.clicks > 0 ? (empresa.expense / empresa.clicks) : 0, // CPC = Gasto ÷ Cliques
+          ctr: empresa.impressions > 0 ? (empresa.clicks / empresa.impressions) * 100 : 0 // CTR = (Cliques ÷ Impressões) * 100
         }));
         
         console.log(`[N8NDataModelSimples] Dia específico processado: ${resultado.length} empresas`);
-        resultado.forEach(r => console.log(`   - ${r.company}: ${r.cliques} cliques, $${r.expense}`));
+        resultado.forEach(r => console.log(`   - ${r.company}: ${r.cliques} cliques, $${r.expense.toFixed(2)}`));
         return resultado;
         
       } else {
-        // LÓGICA PARA RANGE DE DIAS: média das últimas métricas de cada dia
+        // LÓGICA PARA RANGE DE DIAS: somar as últimas métricas de cada dia
         console.log(`[N8NDataModelSimples] Processando range de dias: ${dataInicio} até ${dataFim}`);
+        console.log(`[N8NDataModelSimples] 📊 LÓGICA: Para cada empresa, buscar a última métrica (maior ID) de cada dia e somar os valores do período`);
         
         // Agrupar por empresa e data, mantendo apenas a última métrica (maior ID) de cada dia
         const empresasPorDia = {};
@@ -466,7 +467,13 @@ class N8NDataModelSimples {
             empresasPorDia[nomeEmpresa] = {};
           }
           
+          // Manter apenas a métrica com maior ID de cada dia (último registro do dia)
           if (!empresasPorDia[nomeEmpresa][dataItem] || item.id > empresasPorDia[nomeEmpresa][dataItem].id) {
+            const isNewRecord = !empresasPorDia[nomeEmpresa][dataItem];
+            const previousId = !isNewRecord ? empresasPorDia[nomeEmpresa][dataItem].id : 'nenhum';
+            
+            console.log(`[N8NDataModelSimples]    📅 ${dataItem} - ${nomeEmpresa}: ${isNewRecord ? 'Novo' : 'Atualizando'} registro (ID: ${previousId} → ${item.id})`);
+            
             empresasPorDia[nomeEmpresa][dataItem] = {
               id: item.id,
               expense: (parseFloat(item.spend) || 0) / 100, // Dividir por 100 para converter centavos em reais
@@ -478,31 +485,36 @@ class N8NDataModelSimples {
           }
         });
         
-        // Calcular médias para cada empresa
+        // Calcular totais para cada empresa (soma das últimas métricas de cada dia)
         const empresasMetricas = {};
         
         Object.entries(empresasPorDia).forEach(([nomeEmpresa, diasData]) => {
           const dias = Object.values(diasData);
           const totalDias = dias.length;
           
+          console.log(`[N8NDataModelSimples] 🏢 Processando empresa: ${nomeEmpresa} (${totalDias} dias com dados)`);
+          
           if (totalDias > 0) {
+            // SOMA dos valores da última métrica de cada dia
             const somaExpense = dias.reduce((sum, dia) => sum + dia.expense, 0);
             const somaClicks = dias.reduce((sum, dia) => sum + dia.clicks, 0);
             const somaImpressions = dias.reduce((sum, dia) => sum + dia.impressions, 0);
-            const somaCpc = dias.reduce((sum, dia) => sum + dia.cpc, 0);
-            const somaCtr = dias.reduce((sum, dia) => sum + dia.ctr, 0);
+            
+            console.log(`[N8NDataModelSimples]    📈 Totais: Gasto=${somaExpense.toFixed(2)}, Cliques=${somaClicks}, Impressões=${somaImpressions}`);
+            console.log(`[N8NDataModelSimples]    🧮 CPC Calculado: ${somaClicks > 0 ? (somaExpense / somaClicks).toFixed(4) : '0.0000'}`);
+            console.log(`[N8NDataModelSimples]    🧮 CTR Calculado: ${somaImpressions > 0 ? ((somaClicks / somaImpressions) * 100).toFixed(2) : '0.00'}%`);
             
             empresasMetricas[nomeEmpresa] = {
               company: nomeEmpresa,
-              totalRecords: Math.round(somaClicks / totalDias), // Média de clicks
-              expense: somaExpense / totalDias, // Média de gastos
+              totalRecords: somaClicks, // Total de Cliques = soma dos cliques da última métrica de cada dia
+              expense: somaExpense, // Gasto Total = soma dos gastos da última métrica de cada dia
               roosterCost: 0,
-              totalBilling: somaExpense / totalDias,
-              impressoes: Math.round(somaImpressions / totalDias), // Média de impressões
-              cliques: Math.round(somaClicks / totalDias), // Média de clicks
+              totalBilling: somaExpense,
+              impressoes: somaImpressions, // Impressões = soma das impressões da última métrica de cada dia
+              cliques: somaClicks, // Total de clicks
               plataforma: 'Facebook',
-              cpc: somaCpc / totalDias, // Média de CPC
-              ctr: somaCtr / totalDias, // Média de CTR
+              cpc: somaClicks > 0 ? (somaExpense / somaClicks) : 0, // CPC Médio = Gasto Total ÷ Total de Cliques
+              ctr: somaImpressions > 0 ? (somaClicks / somaImpressions) * 100 : 0, // CTR = (Total de Cliques ÷ Impressões) * 100
               diasComDados: totalDias
             };
           }
@@ -511,12 +523,21 @@ class N8NDataModelSimples {
         // Converter para formato esperado
         const resultado = Object.values(empresasMetricas).map(empresa => ({
           ...empresa,
-          cplTarget: empresa.cliques > 0 ? (empresa.expense / empresa.cliques) : 0,
+          cplTarget: empresa.cliques > 0 ? (empresa.expense / empresa.cliques) : 0, // CPC Médio = Gasto Total ÷ Total de Cliques
           totalCPL: empresa.cliques > 0 ? (empresa.expense / empresa.cliques) : 0
         }));
         
-        console.log(`[N8NDataModelSimples] Range processado: ${resultado.length} empresas`);
-        resultado.forEach(r => console.log(`   - ${r.company}: ${r.cliques} cliques (média de ${r.diasComDados} dias), $${r.expense.toFixed(2)}`));
+        console.log(`[N8NDataModelSimples] ✅ Range processado: ${resultado.length} empresas`);
+        console.log(`[N8NDataModelSimples] 📊 RESUMO DOS TOTAIS POR EMPRESA (soma das últimas métricas de cada dia):`);
+        resultado.forEach(r => {
+          console.log(`   🏢 ${r.company}:`);
+          console.log(`      💰 Gasto Total: $${r.expense.toFixed(2)}`);
+          console.log(`      🖱️ Cliques Totais: ${r.cliques}`);
+          console.log(`      👁️ Impressões Totais: ${r.impressoes}`);
+          console.log(`      💲 CPC Médio: $${r.cpc.toFixed(4)}`);
+          console.log(`      📈 CTR Médio: ${r.ctr.toFixed(2)}%`);
+          console.log(`      📅 Dias com dados: ${r.diasComDados}`);
+        });
         return resultado;
       }
       
